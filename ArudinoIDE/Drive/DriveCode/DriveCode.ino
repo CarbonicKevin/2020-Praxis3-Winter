@@ -1,8 +1,9 @@
-#include <AFMotor.h>
 #include <SoftwareSerial.h>
 
 #define TX A0
 #define RX A1
+
+#define noMot 3
 
 struct vector {
   int deg; // in rad
@@ -10,25 +11,54 @@ struct vector {
   int rot;
 }; typedef vector vector;
 
+struct stepper {
+  const int RX;
+  const int TX;
+  float dely;
+  int dir;
+  SoftwareSerial slSerial;
+}; typedef stepper stepper;
+
 struct motor {
-  int motVel;
+  float motVel;
   float motAngle;
-  AF_DCMotor mot;
+  stepper mot;
 }; typedef motor motor;
 
-motor mot1 = {.motVel = 0, .motAngle =  (       0.00)*PI , .mot=AF_DCMotor(1)};
-motor mot2 = {.motVel = 0, .motAngle =  (120.0/180.0)*PI , .mot=AF_DCMotor(2)};
-motor mot3 = {.motVel = 0, .motAngle =  (240.0/180.0)*PI , .mot=AF_DCMotor(3)};
+SoftwareSerial tempSerial(10, 11);
+
+stepper stp1 = {.RX=2, .TX=3, .dely=0, .dir=0, .slSerial = tempSerial};
+stepper stp2 = {.RX=4, .TX=5, .dely=0, .dir=0, .slSerial = tempSerial};
+stepper stp3 = {.RX=6, .TX=7, .dely=0, .dir=0, .slSerial = tempSerial};
+
+motor mot1 = {.motVel = 0, .motAngle =  (       0.00)*PI , .mot=stp1};
+motor mot2 = {.motVel = 0, .motAngle =  (120.0/180.0)*PI , .mot=stp2};
+motor mot3 = {.motVel = 0, .motAngle =  (240.0/180.0)*PI , .mot=stp3};
 motor motList[] = {mot1, mot2, mot3};
 
-String uInput;
+SoftwareSerial stpSer1(stp1.RX, stp1.TX);
+SoftwareSerial stpSer2(stp2.RX, stp2.TX);
+SoftwareSerial stpSer3(stp3.RX, stp3.TX);
 
 SoftwareSerial iSerial(RX, TX);
+
+const int minDely = 500;
+String uInput;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600); // set up Serial library at 9600 bps
   iSerial.begin(9600);
+
+  //stpSer1.begin(9600);
+  //stpSer2.begin(9600);
+  //stpSer3.begin(9600);
+
+  Serial.println("Booting");
+  
+  mot1.mot.slSerial = stpSer1;
+  //mot1.mot.slSerial = stpSer2;
+  //mot1.mot.slSerial = stpSer3;
 }
 
 void loop() {
@@ -82,30 +112,41 @@ void mov(String uInput) {
   }
   runMotVelo(uVector, motList);
 } 
-
     
 void runMotVelo(vector V, motor* motP) {
   // Calculates and runs motors
   //Mathmatics from http://robocup.mi.fu-berlin.de/buch/omnidrive.pdf
 
   float deg = V.deg * PI/180;
-  int xVel = V.mag*cos(deg); int yVel = V.mag*sin(deg);
-  Serial.println("Velocity: " +  String(xVel) + ", " + String(yVel));
-  int i; int tempVel;
+  float xVel = V.mag*cos(deg); float yVel = V.mag*sin(deg);
+  int i; float maxVel; float normal;
+  String outString;
 
-  for (i=0; i<3; i++) {
+  Serial.println("Velocity: " +  String(xVel) + ", " + String(yVel));
+
+  // Calculate velocity, save the max abs velocity and a list of velocities to work on
+  maxVel = 0.0;
+  for (i=0; i<noMot; i++) {
     motP[i].motVel = -sin((motP[i]).motAngle) * xVel + cos((motP[i]).motAngle) * yVel + 255*V.rot; // Calculating motor speed
-    Serial.println(motP[i].motAngle);
-    motP[i].mot.setSpeed(abs(floor(motP[i].motVel)));  // Setting Motor Speed
+    maxVel = max(abs(motP[i].motVel), abs(maxVel));
     Serial.println("Motor " + String(i) + " Velocity: " + String((motP[i]).motVel)); // Printing calculated motor speeds for debug
   }
-
-  for (i=0; i<3; i++) {
-    tempVel = floor(motP[i].motVel);
-    if      (tempVel <  0) {motP[i].mot.run(BACKWARD);}
-    else if (tempVel >  0) {motP[i].mot.run(FORWARD);}
-    else if (tempVel == 0) {motP[i].mot.run(RELEASE);}
-    else    {Serial.println("Could not start motor");} // Debug Line
-  }
   
+  // Calculate 'delta' the multiple of the delay required
+  if (maxVel == 0) {for (i=0; i<noMot; i++) {motP[i].mot.dely = 0.0; motP[i].mot.dir =0;}}
+  else {
+    for (i=0; i<noMot; i++) {
+      normal = (abs(motP[i].motVel)/maxVel);
+      if (normal < 0.0001) {motP[i].mot.dely = 0;}
+      else {motP[i].mot.dely = (1/(abs(motP[i].motVel)/maxVel))*minDely;}
+      if (motP[i].motVel >= 0) {motP[i].mot.dir = 0;}
+      else                     {motP[i].mot.dir = 1;}
+    }
+  }
+
+  // Package and send to each slave
+  for (i=0; i<noMot; i++) {
+    Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
+    motP[i].mot.slSerial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));
+  }
 }
