@@ -12,10 +12,11 @@ struct vector {
 }; typedef vector vector;
 
 struct stepper {
-  const int dirPin;
-  const int stepPin;
+  const int RX;
+  const int TX;
   float dely;
   int dir;
+  SoftwareSerial slSerial;
 }; typedef stepper stepper;
 
 struct motor {
@@ -24,15 +25,20 @@ struct motor {
   stepper mot;
 }; typedef motor motor;
 
+SoftwareSerial tempSerial(10, 11);
 
-stepper stp1 = {.dirPin=2, .stepPin=3, .dely=0, .dir=0};
-stepper stp2 = {.dirPin=4, .stepPin=5, .dely=0, .dir=0};
-stepper stp3 = {.dirPin=6, .stepPin=7, .dely=0, .dir=0};
+stepper stp1 = {.RX=2, .TX=3, .dely=0, .dir=0, .slSerial = tempSerial};
+stepper stp2 = {.RX=4, .TX=5, .dely=0, .dir=0, .slSerial = tempSerial};
+stepper stp3 = {.RX=6, .TX=7, .dely=0, .dir=0, .slSerial = tempSerial};
 
 motor mot1 = {.motVel = 0, .motAngle =  (       0.00)*PI , .mot=stp1};
 motor mot2 = {.motVel = 0, .motAngle =  (120.0/180.0)*PI , .mot=stp2};
 motor mot3 = {.motVel = 0, .motAngle =  (240.0/180.0)*PI , .mot=stp3};
 motor motList[] = {mot1, mot2, mot3};
+
+SoftwareSerial stpSer1(stp1.RX, stp1.TX);
+SoftwareSerial stpSer2(stp2.RX, stp2.TX);
+SoftwareSerial stpSer3(stp3.RX, stp3.TX);
 
 SoftwareSerial iSerial(RX, TX);
 
@@ -43,16 +49,16 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600); // set up Serial library at 9600 bps
   iSerial.begin(9600);
+
+  //stpSer1.begin(9600);
+  //stpSer2.begin(9600);
+  //stpSer3.begin(9600);
+
   Serial.println("Booting");
-
-  digitalWrite(mot1.mot.dirPin, LOW);
-  analogWrite (mot1.mot.stepPin, 0);
-
-  digitalWrite(mot2.mot.dirPin, LOW);
-  analogWrite (mot2.mot.stepPin, 0);
-
-  digitalWrite(mot3.mot.dirPin, LOW);
-  analogWrite (mot3.mot.stepPin, 0);
+  
+  mot1.mot.slSerial = stpSer1;
+  //mot1.mot.slSerial = stpSer2;
+  //mot1.mot.slSerial = stpSer3;
 }
 
 void loop() {
@@ -141,7 +147,6 @@ void runMotVelo(vector V, motor* motP) {
   // Package and send to each slave
   for (i=0; i<noMot; i++) {
     Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
-    digitalWrite(motP[i].mot.dirPin, motP[i].mot.dir);
-    analogWrite (motP[i].mot.stepPin, (motP[i].mot.dely/1000)*255);
+    motP[i].mot.slSerial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));
   }
 }
