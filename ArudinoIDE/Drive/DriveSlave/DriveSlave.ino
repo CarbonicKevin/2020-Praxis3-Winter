@@ -5,9 +5,6 @@
 #define MS2 5
 #define MS3 6
 
-#define dirInput 8
-#define stepInput 9
-
 String uInput;
 
 void setup() {
@@ -17,22 +14,47 @@ void setup() {
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
-
-  pinMode(dirInput, INPUT);
-  pinMode(stepInput, INPUT);
   
   Serial.begin(9600);
 }
-int i;
+
 void loop() {
-  digitalWrite(dirPin, digitalRead(dirInput)); // Writing to dir pin
-  
-  while (1) {
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(500);
-    digitalWrite(stepPin, LOW);
-    i = int(analogRead(stepInput)*1000/255);
-    Serial.println(i);
-    delayMicroseconds(i);
+  if (Serial.available()) { // Parse through input
+    uInput = Serial.readString(); // Read Input
+    Serial.println(uInput);
+    mov(uInput);
   }
+}
+
+void mov(String uInput) {
+    char *token; int i;
+    char buf[200]; char split[] = ",";
+    String listStr[2]; int dely;
+    
+    uInput.toCharArray(buf, 200); // Convert input to char array
+    
+    token = strtok(buf, split);
+    i = 0;
+    while (token != NULL) {
+      //printf("%s\n", token);
+      listStr[i] = String(token);
+      token = strtok(NULL, split);
+      i++;
+    }
+    if (i != 2) {
+      Serial.println("Failed to parse: " + String(i));
+      return;
+    }
+
+    digitalWrite(dirPin, listStr[1].toInt()); // Writing to dir pin
+    dely = listStr[0].toInt();
+
+    while (1) {
+      digitalWrite(stepPin, HIGH);
+      delayMicroseconds(500);
+      digitalWrite(stepPin, LOW);
+      delayMicroseconds(dely);
+      if (Serial.available()) {break;}
+    }
+    
 }
