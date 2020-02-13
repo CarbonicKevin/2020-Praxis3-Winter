@@ -1,5 +1,6 @@
 #include <SoftwareSerial.h>
 
+// RX and TX ports for btserial
 #define TX A0
 #define RX A1
 
@@ -50,9 +51,9 @@ void setup() {
   Serial.begin(9600); // set up Serial library at 9600 bps
   iSerial.begin(9600);
 
-  //stpSer1.begin(9600);
-  //stpSer2.begin(9600);
-  //stpSer3.begin(9600);
+  stpSer1.begin(9600);
+  stpSer2.begin(9600);
+  stpSer3.begin(9600);
 
   Serial.println("Booting");
   
@@ -62,6 +63,7 @@ void setup() {
 }
 
 void loop() {
+  iSerial.listen();
   if (iSerial.available()) { // Parse through input
     uInput = iSerial.readString(); // Read Input
     Serial.println(uInput);
@@ -147,6 +149,9 @@ void runMotVelo(vector V, motor* motP) {
   // Package and send to each slave
   for (i=0; i<noMot; i++) {
     Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
+    
+    //motP[i].mot.slSerial.begin(9600); // Starting serial communcation on given serial pins
     motP[i].mot.slSerial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));
+    //motP[i].mot.slSerial.end(); // Ending serial communication
   }
 }
