@@ -1,9 +1,13 @@
+#include <SoftwareSerial.h>
 #define  dirPin 3
 #define stepPin 2
 
 #define MS1 4
 #define MS2 5
 #define MS3 6
+
+#define RX 9
+#define TX 8
 
 String uInput;
 
@@ -48,7 +52,7 @@ void mov(String uInput) {
 
     digitalWrite(dirPin, listStr[1].toInt()); // Writing to dir pin
     dely = listStr[0].toInt();
-
+    if (dely == 0) {return;}
     while (1) {
       digitalWrite(stepPin, HIGH);
       delayMicroseconds(500);

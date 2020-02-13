@@ -35,7 +35,6 @@ stepper stp3 = {.RX=6, .TX=7, .dely=0, .dir=0, .slSerial = tempSerial};
 motor mot1 = {.motVel = 0, .motAngle =  (       0.00)*PI , .mot=stp1};
 motor mot2 = {.motVel = 0, .motAngle =  (120.0/180.0)*PI , .mot=stp2};
 motor mot3 = {.motVel = 0, .motAngle =  (240.0/180.0)*PI , .mot=stp3};
-motor motList[] = {mot1, mot2, mot3};
 
 SoftwareSerial stpSer1(stp1.RX, stp1.TX);
 SoftwareSerial stpSer2(stp2.RX, stp2.TX);
@@ -50,16 +49,12 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600); // set up Serial library at 9600 bps
   iSerial.begin(9600);
-
-  stpSer1.begin(9600);
-  stpSer2.begin(9600);
-  stpSer3.begin(9600);
-
-  Serial.println("Booting");
   
+  Serial.println("Booting");
+
   mot1.mot.slSerial = stpSer1;
-  //mot1.mot.slSerial = stpSer2;
-  //mot1.mot.slSerial = stpSer3;
+  mot2.mot.slSerial = stpSer2;
+  mot3.mot.slSerial = stpSer3;
 }
 
 void loop() {
@@ -73,7 +68,7 @@ void loop() {
 
 void mov(String uInput) {
   vector uVector = {.deg=0, .mag=0, .rot=0};
-  
+  motor motList[] = {mot1, mot2, mot3};
   char *token;
   char buf[200]; char split[] = ",";
   String listStr[3];
@@ -140,18 +135,22 @@ void runMotVelo(vector V, motor* motP) {
     for (i=0; i<noMot; i++) {
       normal = (abs(motP[i].motVel)/maxVel);
       if (normal < 0.0001) {motP[i].mot.dely = 0;}
-      else {motP[i].mot.dely = (1/(abs(motP[i].motVel)/maxVel))*minDely;}
+      else {motP[i].mot.dely = (maxVel/abs(motP[i].motVel))*minDely*(255/V.mag);} // 1/(speed/maximum motor speed) * delay * (max capable speed/desired speed)
       if (motP[i].motVel >= 0) {motP[i].mot.dir = 0;}
       else                     {motP[i].mot.dir = 1;}
+
+      Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
+      Serial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));    
     }
   }
 
+  
   // Package and send to each slave
+  iSerial.end();
   for (i=0; i<noMot; i++) {
-    Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
-    
-    //motP[i].mot.slSerial.begin(9600); // Starting serial communcation on given serial pins
+    motP[i].mot.slSerial.begin(9600); // Starting serial communcation on given serial pins
     motP[i].mot.slSerial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));
-    //motP[i].mot.slSerial.end(); // Ending serial communication
+    motP[i].mot.slSerial.end(); // Ending serial communication
   }
+  iSerial.begin(9600);
 }
