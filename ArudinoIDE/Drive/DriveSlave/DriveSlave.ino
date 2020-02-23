@@ -55,7 +55,7 @@ void mov(String uInput) {
     if (dely == 0) {return;}
     while (1) {
       digitalWrite(stepPin, HIGH);
-      delayMicroseconds(500);
+      delayMicroseconds(1000);
       digitalWrite(stepPin, LOW);
       delayMicroseconds(dely);
       if (Serial.available()) {break;}

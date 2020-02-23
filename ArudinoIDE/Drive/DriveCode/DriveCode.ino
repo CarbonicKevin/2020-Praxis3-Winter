@@ -42,7 +42,7 @@ SoftwareSerial stpSer3(stp3.RX, stp3.TX);
 
 SoftwareSerial iSerial(RX, TX);
 
-const int minDely = 500;
+const int minDely = 4000;
 String uInput;
 
 void setup() {
@@ -81,13 +81,13 @@ void mov(String uInput) {
   // Parsing done with help from: https://www.tutorialspoint.com/c_standard_library/c_function_strtok.htm
   // and https://www.arduino.cc/reference/en/language/variables/data-types/string/functions/tochararray/
   // Creates a vector object uVector
-  if      (uInput == "x") {uVector.deg =     0; uVector.mag =   0; uVector.rot =  0.0;} 
-  else if (uInput == "w") {uVector.deg =   0.0; uVector.mag = 255; uVector.rot =  0.0;} 
-  else if (uInput == "s") {uVector.deg = 180.0; uVector.mag = 255; uVector.rot =  0.0;} 
-  else if (uInput == "a") {uVector.deg =  90.0; uVector.mag = 255; uVector.rot =  0.0;} 
-  else if (uInput == "d") {uVector.deg = 270.0; uVector.mag = 255; uVector.rot =  0.0;} 
-  else if (uInput == "q") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot =  1.0;}
-  else if (uInput == "e") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot = -1.0;}
+  if      (uInput == "x") {uVector.deg =     0; uVector.mag =   0; uVector.rot =    0.0;} 
+  else if (uInput == "w") {uVector.deg =   0.0; uVector.mag = 255; uVector.rot =    0.0;} 
+  else if (uInput == "s") {uVector.deg = 180.0; uVector.mag = 255; uVector.rot =    0.0;}
+  else if (uInput == "a") {uVector.deg =  90.0; uVector.mag = 255; uVector.rot =  -50.0;}  // calibration, robot shows a clockwise rotation when moving
+  else if (uInput == "d") {uVector.deg = 270.0; uVector.mag = 255; uVector.rot =  -50.0;}  // calibration, robot shows an anticlockwise rotation when moving
+  else if (uInput == "q") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot =  255.0;}
+  else if (uInput == "e") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot = -255.0;}
   else {
     uInput.toCharArray(buf, 200); // Convert input to char array
     
@@ -124,7 +124,7 @@ void runMotVelo(vector V, motor* motP) {
   // Calculate velocity, save the max abs velocity and a list of velocities to work on
   maxVel = 0.0;
   for (i=0; i<noMot; i++) {
-    motP[i].motVel = -sin((motP[i]).motAngle) * xVel + cos((motP[i]).motAngle) * yVel + 255*V.rot; // Calculating motor speed
+    motP[i].motVel = -sin((motP[i]).motAngle) * xVel + cos((motP[i]).motAngle) * yVel + V.rot; // Calculating motor speed
     maxVel = max(abs(motP[i].motVel), abs(maxVel));
     Serial.println("Motor " + String(i) + " Velocity: " + String((motP[i]).motVel)); // Printing calculated motor speeds for debug
   }
@@ -135,12 +135,12 @@ void runMotVelo(vector V, motor* motP) {
     for (i=0; i<noMot; i++) {
       normal = (abs(motP[i].motVel)/maxVel);
       if (normal < 0.0001) {motP[i].mot.dely = 0;}
-      else {motP[i].mot.dely = (maxVel/abs(motP[i].motVel))*minDely*(255/V.mag);} // 1/(speed/maximum motor speed) * delay * (max capable speed/desired speed)
+      else {motP[i].mot.dely = abs((maxVel/abs(motP[i].motVel))*minDely*(255/V.mag)*(255/V.rot));} // 1/(speed/maximum motor speed) * delay * (max capable speed/desired speed)
       if (motP[i].motVel >= 0) {motP[i].mot.dir = 0;}
       else                     {motP[i].mot.dir = 1;}
 
       Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
-      Serial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));    
+      //Serial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));    
     }
   }
 
