@@ -84,8 +84,8 @@ void mov(String uInput) {
   if      (uInput == "x") {uVector.deg =     0; uVector.mag =   0; uVector.rot =    0.0;} 
   else if (uInput == "w") {uVector.deg =   0.0; uVector.mag = 255; uVector.rot =    0.0;} 
   else if (uInput == "s") {uVector.deg = 180.0; uVector.mag = 255; uVector.rot =    0.0;}
-  else if (uInput == "a") {uVector.deg =  90.0; uVector.mag = 255; uVector.rot =  -50.0;}  // calibration, robot shows a clockwise rotation when moving
-  else if (uInput == "d") {uVector.deg = 270.0; uVector.mag = 255; uVector.rot =  -50.0;}  // calibration, robot shows an anticlockwise rotation when moving
+  else if (uInput == "a") {uVector.deg =  90.0; uVector.mag = 255; uVector.rot =    0.0;}  // calibration, robot shows a clockwise rotation when moving
+  else if (uInput == "d") {uVector.deg = 270.0; uVector.mag = 255; uVector.rot =    0.0;}  // calibration, robot shows an anticlockwise rotation when moving
   else if (uInput == "q") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot =  255.0;}
   else if (uInput == "e") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot = -255.0;}
   else {

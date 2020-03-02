@@ -6,9 +6,6 @@
 #define MS2 5
 #define MS3 6
 
-#define RX 9
-#define TX 8
-
 String uInput;
 
 void setup() {
@@ -18,6 +15,10 @@ void setup() {
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
+
+  digitalWrite(MS1, HIGH);
+  digitalWrite(MS2, HIGH);
+  digitalWrite(MS3,  LOW);
   
   Serial.begin(9600);
 }
@@ -33,7 +34,7 @@ void loop() {
 void mov(String uInput) {
     char *token; int i;
     char buf[200]; char split[] = ",";
-    String listStr[2]; int dely;
+    String listStr[2]; float dely;
     
     uInput.toCharArray(buf, 200); // Convert input to char array
     
@@ -51,13 +52,13 @@ void mov(String uInput) {
     }
 
     digitalWrite(dirPin, listStr[1].toInt()); // Writing to dir pin
-    dely = listStr[0].toInt();
+    dely = listStr[0].toFloat();
     if (dely == 0) {return;}
     while (1) {
       digitalWrite(stepPin, HIGH);
-      delayMicroseconds(1000);
+      delayMicroseconds(round(dely/2));
       digitalWrite(stepPin, LOW);
-      delayMicroseconds(dely);
+      delayMicroseconds(round(dely/2));
       if (Serial.available()) {break;}
     }
     
