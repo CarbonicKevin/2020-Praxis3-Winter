@@ -1,8 +1,6 @@
-#include "motorLibrary.h"
-
 #define MS1 4 //
-#define MS1 5 //
-#define MS1 6 //
+#define MS2 5 //
+#define MS3 6 //
 
 #define stepPin 2
 #define dirPin  3
@@ -10,11 +8,11 @@
 #define addr 1
 
 // info to be received from master
-int      dely;
-int   noSteps;
-bool timeMode;
-int       dir;
-int   stpSize;
+int      dely = 0;
+int   noSteps = 0;
+bool timeMode = 0;
+int       dir = 0;
+int   stpSize = 0;
 
 void setup() {
     pinMode(stepPin, OUTPUT);
@@ -40,7 +38,7 @@ void loop() {
 
     //
     if (dely==0 || noSteps==0) { // non-moving state
-        digitalWrite(stepPin, HIGH);
+        digitalWrite(stepPin, LOW);
     } else if (!timeMode) {
         for (int i=0; i<noSteps; i++) {
             digitalWrite(stepPin, HIGH);
