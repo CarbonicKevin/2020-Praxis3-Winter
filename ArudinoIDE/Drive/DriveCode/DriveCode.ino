@@ -17,7 +17,7 @@ struct stepper {
   const int TX;
   float dely;
   int dir;
-  SoftwareSerial slSerial;
+  SoftwareSerial slSerial; // what is this
 }; typedef stepper stepper;
 
 struct motor {
@@ -49,7 +49,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600); // set up Serial library at 9600 bps
   iSerial.begin(9600);
-  
+
   Serial.println("Booting");
 
   mot1.mot.slSerial = stpSer1;
@@ -74,15 +74,15 @@ void mov(String uInput) {
   String listStr[3];
 
   int i;
-  
+
   // Function to parse through the string and package input into vector
 
   // PARSING --------------------------------------------------------------------------------------------
   // Parsing done with help from: https://www.tutorialspoint.com/c_standard_library/c_function_strtok.htm
   // and https://www.arduino.cc/reference/en/language/variables/data-types/string/functions/tochararray/
   // Creates a vector object uVector
-  if      (uInput == "x") {uVector.deg =     0; uVector.mag =   0; uVector.rot =    0.0;} 
-  else if (uInput == "w") {uVector.deg =   0.0; uVector.mag = 255; uVector.rot =    0.0;} 
+  if      (uInput == "x") {uVector.deg =     0; uVector.mag =   0; uVector.rot =    0.0;}
+  else if (uInput == "w") {uVector.deg =   0.0; uVector.mag = 255; uVector.rot =    0.0;}
   else if (uInput == "s") {uVector.deg = 180.0; uVector.mag = 255; uVector.rot =    0.0;}
   else if (uInput == "a") {uVector.deg =  90.0; uVector.mag = 255; uVector.rot =    0.0;}  // calibration, robot shows a clockwise rotation when moving
   else if (uInput == "d") {uVector.deg = 270.0; uVector.mag = 255; uVector.rot =    0.0;}  // calibration, robot shows an anticlockwise rotation when moving
@@ -90,7 +90,7 @@ void mov(String uInput) {
   else if (uInput == "e") {uVector.deg =   0.0; uVector.mag =   0; uVector.rot = -255.0;}
   else {
     uInput.toCharArray(buf, 200); // Convert input to char array
-    
+
     token = strtok(buf, split);
     i = 0;
     while (token != NULL) {
@@ -103,16 +103,16 @@ void mov(String uInput) {
       Serial.println("Failed to parse: " + String(i));
       return;
     }
-    
+
     uVector.deg=listStr[0].toInt(); uVector.mag=listStr[1].toInt(); uVector.rot=listStr[2].toInt(); // creating vector
     Serial.println("Deg: " + listStr[0] + " Mag: " + listStr[1]+ " Rot: " +listStr[2]); // Displaying vector for debug
   }
   runMotVelo(uVector, motList);
-} 
-    
+}
+
 void runMotVelo(vector V, motor* motP) {
   // Calculates and runs motors
-  //Mathmatics from http://robocup.mi.fu-berlin.de/buch/omnidrive.pdf
+  // Mathmatics from http://robocup.mi.fu-berlin.de/buch/omnidrive.pdf
 
   float deg = V.deg * PI/180;
   float xVel = V.mag*cos(deg); float yVel = V.mag*sin(deg);
@@ -128,7 +128,7 @@ void runMotVelo(vector V, motor* motP) {
     maxVel = max(abs(motP[i].motVel), abs(maxVel));
     Serial.println("Motor " + String(i) + " Velocity: " + String((motP[i]).motVel)); // Printing calculated motor speeds for debug
   }
-  
+
   // Calculate 'delta' the multiple of the delay required
   if (maxVel == 0) {for (i=0; i<noMot; i++) {motP[i].mot.dely = 0.0; motP[i].mot.dir =0;}}
   else {
@@ -140,11 +140,11 @@ void runMotVelo(vector V, motor* motP) {
       else                     {motP[i].mot.dir = 1;}
 
       Serial.println("Motor: " + String(i) + " Delay: " + String(motP[i].mot.dely) + " Direction: " + String(motP[i].mot.dir));
-      //Serial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));    
+      //Serial.println(String(motP[i].mot.dely)+","+String(motP[i].mot.dir));
     }
   }
 
-  
+
   // Package and send to each slave
   iSerial.end();
   for (i=0; i<noMot; i++) {

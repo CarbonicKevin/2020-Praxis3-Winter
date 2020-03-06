@@ -8,9 +8,11 @@ void setup() {
     slave dSlave3 = {.addr=5, .dely=2000, .noSteps=-1, .timeMode=1, .dir=0, .stpSize=1};
 
     leadMotor eeMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave=eeSlave};
-    leadMotor  zMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave= zSlave};
+    leadMotor  zMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave=zSlave};
 
     eeMot.moveLead(100);
+
+    Wire.begin();   // join i2c bus
 }
 
 void loop() {

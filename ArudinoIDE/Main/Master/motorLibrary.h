@@ -10,39 +10,42 @@ struct vector {
     int rot;
 }; typedef vector vector;
 
-struct slave {     // Structure whose contents will be sent to the slave
-    int     addr;  // Address of Slave
-    int     dely;  // >= 2000 microseconds
-    int  noSteps;  // 0:Stop; >0:More; Number of steps to turn; if timeMode = 1; and noSteps = -1, then inf turn
-    int timeMode;  // noSteps will be interepreted as time required if true
-    int      dir;  // Direction of Motor; 0 or 1. Defining 0 as lturn, and 1 as rturn
-    int  stpSize;  // 1, 2, 4, 8
+struct slave {     // Structure whose contents will be sent to the slave from master
+    int      addr;  // Address of Slave
+    int      dely;  // >= 2000 microseconds
+    int   noSteps;  // 0:Stop; >0:More; Number of steps to turn if timeMode=0, Time to turn (in ms) if timeMode=1; if timeMode = 1 and noSteps = -1, then inf turn
+    bool timeMode;  // noSteps will be interepreted as time required if true
+    int       dir;  // Direction of Motor; 0 or 1. Defining 0 as lturn, and 1 as rturn
+    int   stpSize;  // 1, 2, 4, 8
 
-    bool updateSlave(bool waitForReply) {
+    bool updateSlave(bool waitForReply) { // master sends information to slave.
         char msg[100];
-        (String(dely)+','+String(noSteps)+','+String(dir)+','+String(stpSize)).toCharArray(msg, 100);
+        (String(dely)+','+String(noSteps)+','+String(timeMode)+','+String(dir)+','+String(stpSize)).toCharArray(msg, 100);
+        // Why not sending timeMode???
         Wire.beginTransmission(addr);
         Wire.write(msg);
-        Wire.endTransmission(1);
+        Wire.endTransmission(1); // send stop msg after transmission
         if (waitForReply) {
-            Wire.requestFrom(addr, 1, 1);
+            Wire.requestFrom(addr, 1, 1); // requests 1 byte from slave, and stops message after.
             while (1) {
                 if (Wire.available() > 0) {Wire.read(); return(1);} // waiting for any response from slave
-            }
+            } // TODO: add a thing (time limit, etc.) to prevent master from getting stuck here.
         } return(1);
     }
 }; typedef slave slave;
 
 struct leadMotor {
-    // Code for Lead Screws (z-axis and eef)
-    // call modeLead with a distance to move a certain length
-    // call startup and stop for startup mode and stop motor
-    float stepAng;  // angle per step of motor
-    float    lead;  // lead of the lead screw  
-    int  totSteps;  
-    slave motSlave;
+    // Code for motors operating Lead Screws (z-axis and eff)
+    // calling modeLead and providing distance -> moves a certain length
+    // calling startup and stop -> startup mode and stop motor
+    float  stepAng;  // angle per step of motor.
+    float     lead;  // lead of the lead screw.
+    int   totSteps;  // count number of steps taken in total.
+    slave motSlave;  // slave struct, info to be sent from master to slave.
 
     void moveLead(float dist, bool waitForReply) {
+        // fcn to rotate the lead screw.
+        // if waitForReply is true, wait for totSteps to update before exit.
         int steps         = (dist*360)/(lead*stepAng);
         motSlave.timeMode = 0;
         motSlave.noSteps  = abs(steps);
@@ -76,9 +79,9 @@ struct leadMotor {
 }; typedef leadMotor leadMotor;
 
 struct driveMotor {
-    float motVel;
-    float motAngle;
-    slave motSlave;
+    float motVel; //
+    float motAngle; // can be 0, 60, 120. used to specify which motor.
+    slave motSlave; //
 }; typedef driveMotor driveMotor;
 
 struct base {
@@ -89,7 +92,7 @@ struct base {
 
     void calcMotVelo() {
         // Function to calculate and update motor slave properties based on the set vector V
-        // Chagnes m1, m2, m3; .dir and .dely, .noSteps and .timeMode is not changed
+        // Changes m1, m2, m3; .dir and .dely, .noSteps and .timeMode is not changed
         driveMotor motP[noMot] = {m1, m2, m3};
         float deg = V.deg * PI/180;
         float xVel = V.mag*cos(deg); float yVel = V.mag*sin(deg);
