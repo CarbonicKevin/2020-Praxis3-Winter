@@ -11,7 +11,7 @@ void setup() {
     leadMotor  zMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave=zSlave};
 
     Wire.begin();   // join i2c bus
-    eeMot.moveLead(100);
+    eeMot.moveLead(100, 0);
 }
 
 void loop() {

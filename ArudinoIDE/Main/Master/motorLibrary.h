@@ -19,11 +19,8 @@ struct slave {     // Structure whose contents will be sent to the slave from ma
     int   stpSize;  // 1, 2, 4, 8
 
     bool updateSlave(bool waitForReply) { // master sends information to slave.
-        char msg[100];
-        (String(dely)+','+String(noSteps)+','+String(timeMode)+','+String(dir)+','+String(stpSize)).toCharArray(msg, 100);
-        // Why not sending timeMode???
         Wire.beginTransmission(addr);
-        Wire.write(msg);
+        Wire.write((String(dely)+','+String(noSteps)+','+String(timeMode)+','+String(dir)+','+String(stpSize)+"NONE").c_str());
         Wire.endTransmission(1); // send stop msg after transmission
         if (waitForReply) {
             Wire.requestFrom(addr, 1, 1); // requests 1 byte from slave, and stops message after.
@@ -49,7 +46,7 @@ struct leadMotor {
         int steps         = (dist*360)/(lead*stepAng);
         motSlave.timeMode = 0;
         motSlave.noSteps  = abs(steps);
-        motSlave.dir      = abs(steps)/steps;
+        if (dist<0) {motSlave.dir=1;} else {motSlave.dir=0;}
         motSlave.updateSlave(waitForReply);
     }
 

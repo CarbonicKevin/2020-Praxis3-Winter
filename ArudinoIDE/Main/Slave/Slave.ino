@@ -1,9 +1,10 @@
-#define MS1 4 //
-#define MS2 5 //
-#define MS3 6 //
+#include <Wire.h>
+#define MS1  8
+#define MS2  9
+#define MS3 10
 
-#define stepPin 2
-#define dirPin  3
+#define stepPin 11
+#define dirPin  12
 
 #define addr 1
 
@@ -22,7 +23,7 @@ void setup() {
     pinMode(MS3,  OUTPUT);
 
     Wire.begin(addr);                   // join i2c bus with Slave address
-    Wire.OnReceive(rec_handler);        // register receive event
+    Wire.onReceive(rec_handler);        // register receive event
 
     Serial.begin(9600);
 }
@@ -31,63 +32,73 @@ void loop() {
     digitalWrite(dirPin, dir);
 
     // set step size pins on the A4988
-    if      (stpSize==1) { MS1=0; MS2=0; MS3=0; }
-    else if (stpSize==2) { MS1=1; MS2=0; MS3=0; }
-    else if (stpSize==4) { MS1=0; MS2=1; MS3=0; }
-    else if (stpSize==8) { MS1=1; MS2=1; MS3=0; }
+    if      (stpSize==1) {digitalWrite(MS1,  LOW); digitalWrite(MS2,  LOW); digitalWrite(MS3,  LOW);}
+    else if (stpSize==2) {digitalWrite(MS1, HIGH); digitalWrite(MS2,  LOW); digitalWrite(MS3,  LOW);}
+    else if (stpSize==4) {digitalWrite(MS1,  LOW); digitalWrite(MS2, HIGH); digitalWrite(MS3,  LOW);}
+    else if (stpSize==8) {digitalWrite(MS1, HIGH); digitalWrite(MS2, HIGH); digitalWrite(MS3,  LOW);}
 
     //
     if (dely==0 || noSteps==0) { // non-moving state
+        digitalWrite(dirPin,  LOW);
         digitalWrite(stepPin, LOW);
+        Serial.println('a');
     } else if (!timeMode) {
+       Serial.println('b');
+        digitalWrite(dirPin, dir);
         for (int i=0; i<noSteps; i++) {
             digitalWrite(stepPin, HIGH);
-            delay(dely);
+            delayMicroseconds(dely);
             digitalWrite(stepPin, LOW);
-            delay(dely);
-        }
+            delayMicroseconds(dely);
+        } noSteps = 0;
     } else { // noSteps interpreted as time in ms
+       Serial.println('c');
         unsigned long startTime =  millis();
         bool inf; // if infinite spin
+        digitalWrite(dirPin, dir);
         if (noSteps == -1) { inf = 1; } else { inf = 0; }
         while (inf || (millis() <= startTime + (unsigned long)noSteps)) {
             digitalWrite(stepPin, HIGH);
-            delay(dely);
+            delayMicroseconds(dely);
             digitalWrite(stepPin, LOW);
-            delay(dely);
-        }
+            delayMicroseconds(dely);
+            if (Wire.available()) {break;}
+        } noSteps = 0;
     }
 }
 
 void rec_handler(int numBytes) {
     // executes for each slave whenever data is received from master.
-    char msg[100];
-    int i=0;
+    char msg[100]; String listStr[5];
+    int i=0; char *token;
     while (0 < Wire.available()) {
         msg[i] = Wire.read();
         i++;
     }
 
     // split and extract data from msg
-    char * split_msg = strtok(msg, ",");
-    dely = atoi(split_msg);
-    split_msg = strtok(NULL, ",");
-    noSteps = atoi(split_msg);
-    split_msg = strtok(NULL, ",");
-    timeMode = atoi(split_msg);
-    split_msg = strtok(NULL, ",");
-    dir = atoi(split_msg);
-    split_msg = strtok(NULL, ",");
-    stpSize = atoi(split_msg);
+    token = strtok(msg, ",");
+    i=0;
+    while (token != NULL) {
+      //printf("%s\n", token);
+      if (i==4) {listStr[i] = String(int(token)/100);}
+      
+      listStr[i] = String(token);
+      token = strtok(NULL, ",");
+      i++;
+    }
+    dely=listStr[0].toInt(); noSteps=listStr[1].toInt(); timeMode=listStr[2].toInt(); dir=listStr[3].toInt(); stpSize=listStr[4].toInt();
+
+    Serial.println(String(dely)+","+String(noSteps)+","+String(timeMode)+","+String(dir)+","+String(stpSize));
 
     // error-checking the values received from master.
     // simple checks
-    if (dely < 2000 && dely != 0) { return 0; }
-    if (noSteps < -1) { return 0; }
-    if (dir != 0 && dir != 1) { return 0; }
-    if (stpSize != 1 && stpSize != 2 && stpSize != 4 && stpSize != 8) { return 0; }
+    if (dely < 2000 && dely != 0) { return; }
+    if (noSteps < -1) { return; }
+    if (dir != 0 && dir != 1) { return; }
+    if (stpSize != 1 && stpSize != 2 && stpSize != 4 && stpSize != 8) { return ; }
 
     // checking valid timeMode and noSteps combinations
-    if (timeMode == 0 && noSteps < 0) { return 0; }
-    if (timeMode == 1 && noSteps < -1) { return 0; } // actually unneeded but ok.
+    if (timeMode == 0 && noSteps < 0) { return; }
+    if (timeMode == 1 && noSteps < -1) { return; } // actually unneeded but ok.
 }
