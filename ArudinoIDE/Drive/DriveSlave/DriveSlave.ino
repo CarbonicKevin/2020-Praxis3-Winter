@@ -1,10 +1,10 @@
 #include <SoftwareSerial.h>
-#define  dirPin 3
-#define stepPin 2
+#define  dirPin 12
+#define stepPin 11
 
-#define MS1 4
-#define MS2 5
-#define MS3 6
+#define MS1  8
+#define MS2  9
+#define MS3 10
 
 String uInput;
 
