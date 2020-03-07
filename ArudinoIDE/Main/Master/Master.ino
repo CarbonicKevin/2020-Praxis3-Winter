@@ -10,6 +10,8 @@ void setup() {
 
     leadMotor eeMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave=eeSlave};
     leadMotor  zMot = {.stepAng=1.8, .lead=4, .totSteps=0, .motSlave=zSlave};
+
+    driveMotor d1Mot = {.};
     
     Wire.begin();   // join i2c bus
     Serial.begin(9600);
