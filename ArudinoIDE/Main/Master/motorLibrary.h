@@ -19,15 +19,20 @@ struct slave {     // Structure whose contents will be sent to the slave from ma
     int   stpSize;  // 1, 2, 4, 8
 
     bool updateSlave(bool waitForReply) { // master sends information to slave.
+        
         Wire.beginTransmission(addr);
         Wire.write((String(dely)+','+String(noSteps)+','+String(timeMode)+','+String(dir)+','+String(stpSize)+"NONE").c_str());
         Wire.endTransmission(1); // send stop msg after transmission
+        delay(10);
         if (waitForReply) {
-            Wire.requestFrom(addr, 1, 1); // requests 1 byte from slave, and stops message after.
-            while (1) {
-                if (Wire.available() > 0) {Wire.read(); return(1);} // waiting for any response from slave
-            } // TODO: add a thing (time limit, etc.) to prevent master from getting stuck here.
-        } return(1);
+          char buf = '0';
+          while (buf=='0'){
+            if (Wire.requestFrom(addr, 1)) {
+              // requests 1 byte from slave, and stops message after.
+              buf = Wire.read();
+            }
+         }   
+       } // TODO: add a thing (time limit, etc.) to prevent master from getting stuck here.
     }
 }; typedef slave slave;
 
@@ -43,17 +48,18 @@ struct leadMotor {
     void moveLead(float dist, bool waitForReply) {
         // fcn to rotate the lead screw.
         // if waitForReply is true, wait for totSteps to update before exit.
-        int steps         = (dist*360)/(lead*stepAng);
+        int steps         = (dist*360*motSlave.stpSize)/(lead*stepAng);
         motSlave.timeMode = 0;
         motSlave.noSteps  = abs(steps);
         if (dist<0) {motSlave.dir=1;} else {motSlave.dir=0;}
         motSlave.updateSlave(waitForReply);
+        totSteps+=abs(steps);
     }
 
     void startup() {
         // Startup raise motor a little
         motSlave.timeMode =     0;
-        motSlave.noSteps  =   100;
+        motSlave.noSteps  =   400;
         motSlave.dir      =     0;
         motSlave.dely     =  minDely;
         motSlave.updateSlave(1);
@@ -64,6 +70,8 @@ struct leadMotor {
         motSlave.dir      =     0;
         motSlave.dely     =  minDely;
         motSlave.updateSlave(0);
+
+        totSteps=0;
     }
     void stop() {
         motSlave.timeMode =    0;
