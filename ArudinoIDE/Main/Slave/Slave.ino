@@ -6,7 +6,7 @@
 #define stepPin 11
 #define dirPin  12
 
-#define addr 2
+#define addr 3
 
 // info to be received from master
 int      dely = 0;
@@ -32,11 +32,12 @@ void setup() {
 }
 
 void loop() {
-    if (newInstruct == 1) {drive(); newInstruct=0;}
+    if (newInstruct == 1) {newInstruct=0; drive();}
     req = 1;
 }
 void drive() {
     digitalWrite(dirPin, dir);
+
     // set step size pins on the A4988
     if      (stpSize==1) {digitalWrite(MS1,  LOW); digitalWrite(MS2,  LOW); digitalWrite(MS3,  LOW);}
     else if (stpSize==2) {digitalWrite(MS1, HIGH); digitalWrite(MS2,  LOW); digitalWrite(MS3,  LOW);}
@@ -56,12 +57,11 @@ void drive() {
         unsigned long startTime =  millis();
         bool inf; // if infinite spin
         if (noSteps == -1) { inf = 1; } else { inf = 0; }
-        while (inf || (millis() <= startTime + (unsigned long)noSteps)) {
+        while ((inf || (millis() <= startTime + (unsigned long)noSteps)) & !newInstruct) {            
             digitalWrite(stepPin, HIGH);
             delayMicroseconds(dely);
             digitalWrite(stepPin, LOW);
             delayMicroseconds(dely);
-            if (newInstruct==1) {return;}
         }
     } req=1;
 }
