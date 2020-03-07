@@ -120,6 +120,13 @@ struct base {
                 else                     {motP[i].motSlave.dir = 1;}
             }
         }
+        m1 = motP[0]; m2 = motP[1]; m3 = motP[2];
+    }
+    
+    void updateAll() {
+        m1.motSlave.updateSlave(0);
+        m2.motSlave.updateSlave(0);
+        m3.motSlave.updateSlave(0);
     }
 
 }; typedef base base;
