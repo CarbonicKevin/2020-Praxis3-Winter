@@ -6,7 +6,7 @@
 #define stepPin 11
 #define dirPin  12
 
-#define addr 3
+#define addr 5
 
 // info to be received from master
 int      dely = 0;
