@@ -1,11 +1,12 @@
 #include "motorLibrary.h"
 #include <math.h>
 #include <Wire.h>
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 // #include "ISR_LmtSwitch.h" //keeping all in this file for now.
 
 #define iRX 8
 #define iTX 9
+//SoftwareSerial iSerial(iRX, iTX);
 
 /* Set up slave motor objects */
 
@@ -26,24 +27,29 @@ vector V         = {.deg=0, .mag=0, .rot=0};
 base kiwi        = {.V=V, .m1=d1Mot, .m2=d2Mot, .m3=d3Mot};
 String uInput;
 
-byte pin=6; //test
-byte pin2=7; //test
-
 /* Set up interrupt objects */
 
-#define PCINT_PIN7 7
-#define PCINT_MODE FALLING
+/*
 #define PCINT_Z_FCN InterruptZaxis
 #define PCINT_EF1_FCN InterruptEffBd
 #define PCINT_EF2_FCN InterruptEffFd
 #define PCINT_EFX_FCN InterruptX
 #define PCINT_EFY_FCN InterruptY
 #define PCINT_EFZ_FCN InterruptZ
+*/
 
-SoftwareSerial iSerial(iRX, iTX);
+// when Interrupt_Flag set, there was an interrupt on D2 through D13
+volatile byte Interrupt_Flag;
 
-// when Flag set, there was an interrupt on D2 through D13
-volatile byte Flag;
+//for timing
+unsigned long timeMillis;
+boolean timingFlag = false;
+
+byte interrupt_pin;
+int prev_state[6] = {0,0,0,0,0,0};
+
+// for testing
+byte pin = 2;
 
 void setup() {
     Wire.begin();
@@ -53,8 +59,7 @@ void setup() {
 
     // setup for interrupts
     // replace with pins 2-7 later
-    pinMode(pin, INPUT); // 
-    pinMode(pin2, INPUT); // 
+    pinMode(pin, INPUT_PULLUP); // 
 
     //PCMSK2 |= bit (PCINT16); // Pin D0
     //PCMSK2 |= bit (PCINT17); // Pin D1
@@ -68,27 +73,36 @@ void setup() {
     PCICR  |= bit (PCIE2);   // enable pin change interrupts for D00 to D07
 
     //pciSetup(pin); //
-    //pciSetup(pin2); //
 }
 
 void loop() {
     zMot.moveLead(20,0);
     zMot.moveLead(-20,0);
     Serial.println("pin: " + String(digitalRead(pin)));
-    Serial.println("pin2: "+ String(digitalRead(pin2)));
 
-    if (Flag == 1) {
-        Flag = 0;
+    if (Interrupt_Flag == 1) {
+            Interrupt_Flag = 0;
+            
+            //check for the bit that caused the interrupt
+            interrupt_pin = checkBit();
+            
+            if (interrupt_pin <=7 && interrupt_pin >= 2) {
+              Serial.print("Interrupt called = ");
+              Serial.println(interrupt_pin);
+              
+              //enable timing
+              timingFlag = true;
+              //time the LED turned ON
+              timeMillis = millis();
     
-        //check for the bit that caused the interrupt
-        byte interrupt = checkBit();
-    
-        if (interrupt != 0) {
-          Serial.print("Interrupt called = ");
-          Serial.println(interrupt);
-        }
-
-
+               //are we timing and has the interval finished?
+              if (timingFlag == true && millis() - timeMillis >= 1000 ){
+                //disable timing
+                timingFlag = false;
+              }
+            } else { 
+              Serial.println("error: pin not set up for interrupts"); 
+            }
     }
     
     /* 
@@ -179,10 +193,13 @@ byte checkBit() {
     }
 }
 
-ISR (PCINT2_vect) //D02-07
-{
-  //get out quick
-  Serial.println("ISR!");
-  
-  Flag = 1;
+ISR (PCINT2_vect) { //D02-07
+  Serial.println("--------------------ISR!");
+  if      (interrupt_pin == 2) { InterruptZaxis(); }
+  else if (interrupt_pin == 3) { InterruptEffBd(); }
+  else if (interrupt_pin == 4) { InterruptEffFd(); }
+  else if (interrupt_pin == 5) {     InterruptX(); }
+  else if (interrupt_pin == 6) {     InterruptY(); }
+  else if (interrupt_pin == 7) {     InterruptZ(); }
+  Interrupt_Flag = 1;
 }
